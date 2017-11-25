@@ -1,31 +1,42 @@
 package jxvmiranda.guitar_composer;
 
-import android.content.res.AssetFileDescriptor;
-import android.media.AudioAttributes;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.graphics.drawable.Drawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
-import android.media.MediaPlayer;
 import android.os.Build;
+import android.os.Environment;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class MainActivity extends AppCompatActivity {
     int resource_up = R.raw.gu;
     int resource_down = R.raw.gd;
-
-    boolean record;
+    long startTime;
+    long time;
+    boolean timerOn = false;
+    boolean record = false;
     AudioTrack previousTrack = null;
+    private FileOutputStream fs;
+    boolean fileCreated = false;
     @RequiresApi(api = Build.VERSION_CODES.M)
     String[] chords = {"G", "F"};
     private void setResource(String chord){
@@ -38,14 +49,7 @@ public class MainActivity extends AppCompatActivity {
             resource_down = R.raw.test2;
         }
     }
-    private void time(){
-    }
-    private void record(){
-    }
-    long startTime;
-    boolean timerOn = false;
-
-    private void wait(int time){
+    private void wait_s(long time){
         long futureTime = System.currentTimeMillis() + time;
         while (System.currentTimeMillis() < futureTime) {
             synchronized (this) {
@@ -59,11 +63,50 @@ public class MainActivity extends AppCompatActivity {
 
     @RequiresApi(api = Build.VERSION_CODES.M)
     private void play(){
+        if (record){
+            String TAG = "TAG";
+            if (Build.VERSION.SDK_INT >= 23) {
+                if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        == PackageManager.PERMISSION_GRANTED) {
+                    Log.d("T","Permission is granted");
+                } else {
+                    Log.d("T","Permission is revoked");
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+                }
+            }
+            else { //permission is automatically granted on sdk<23 upon installation
+                Log.d("T","Permission is granted");
+            }
+            String fileName = "test1.txt";
+            String folder_name = "music-maker";
+
+            File folder = new File(Environment.getExternalStorageDirectory(), folder_name);
+            File file = new File(Environment.getExternalStorageDirectory() + "/" + folder_name, fileName);
+
+            fs = null;
+            try {
+                fs = new FileOutputStream(file);
+                fileCreated = true;
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        startTime = System.currentTimeMillis();
         String chordToSet = chords[0];
         setResource(chordToSet);
-        wait(10000);
+        wait_s(time);
         chordToSet = chords[1];
         setResource(chordToSet);
+        wait_s(10000);
+        if (fs != null) {
+            try {
+                fs.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public class PlayOnClickListener implements View.OnClickListener{
@@ -88,6 +131,9 @@ public class MainActivity extends AppCompatActivity {
             Runnable r = new Runnable(){
                 @Override
                 public void run() {
+                    long wait_time = System.currentTimeMillis() - startTime;
+                    Log.d("TAG", "difference in time " + Long.toString(wait_time));
+                    startTime = System.currentTimeMillis();
                     if (previousTrack != null && previousTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                         Log.d("TAG", "Pausing");
                         previousTrack.pause();
@@ -108,6 +154,17 @@ public class MainActivity extends AppCompatActivity {
                         int offset = 0;
                         int numRead = 0;
                         previousTrack = track;
+                        if(fileCreated) {
+                            try {
+                                fs.write(Long.toString(wait_time).getBytes());
+                                fs.write(" ".getBytes());
+                                fs.write(Integer.toString(resource_up).getBytes());
+                                fs.write(" ".getBytes());
+                            }
+                            catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                         track.setPlaybackHeadPosition(100); // IMPORTANT to skip the click
                         while (offset < rawBytes.length
                                 && (numRead = inputStream.read(rawBytes, offset, rawBytes.length - offset)) >= 0) {
@@ -124,7 +181,6 @@ public class MainActivity extends AppCompatActivity {
                     } catch (IllegalArgumentException e) {
                         Log.e("DS", "Error loading audio to bytes", e);
                     }
-
                 }
             };
             Thread t = new Thread(r);
@@ -135,9 +191,16 @@ public class MainActivity extends AppCompatActivity {
         @RequiresApi(api = Build.VERSION_CODES.M)
         @Override
         public void onClick(View view) {
+            Log.d("TAG", "On Click Starts");
             Runnable r = new Runnable(){
                 @Override
                 public void run() {
+                    Log.d("TAG", "Thread START");
+
+                    long wait_time = System.currentTimeMillis() - startTime;
+                    Log.d("TAG", "difference in time " + Long.toString(wait_time));
+                    startTime = System.currentTimeMillis();
+
                     if (previousTrack != null && previousTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
                         Log.d("TAG", "Pausing");
                         previousTrack.pause();
@@ -158,6 +221,17 @@ public class MainActivity extends AppCompatActivity {
                         int offset = 0;
                         int numRead = 0;
                         previousTrack = track;
+                        if(fileCreated) {
+                            try {
+                                fs.write(Long.toString(wait_time).getBytes());
+                                fs.write(" ".getBytes());
+                                fs.write(Integer.toString(resource_up).getBytes());
+                                fs.write(" ".getBytes());
+                            }
+                            catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                         track.setPlaybackHeadPosition(100); // IMPORTANT to skip the click
                         while (offset < rawBytes.length
                                 && (numRead = inputStream.read(rawBytes, offset, rawBytes.length - offset)) >= 0) {
@@ -174,16 +248,34 @@ public class MainActivity extends AppCompatActivity {
                     } catch (IllegalArgumentException e) {
                         Log.e("DS", "Error loading audio to bytes", e);
                     }
+                    Log.d("TAG", "Thread END");
+
+
                 }
+
             };
             Thread t = new Thread(r);
             t.start();
+            Log.d("TAG", "On Click Ends");
+
         }
     }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Button mt = (Button) findViewById(R.id.metronome);
+        final ImageView m1 = (ImageView) findViewById(R.id.m1);
+        mt.setOnClickListener(new View.OnClickListener() {
+            @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+            @Override
+            public void onClick(View view) {
+                Drawable image=(Drawable)getResources().getDrawable(R.drawable.custom);
+                m1.setBackground(image);
+            }
+        });
         Button up = (Button) findViewById(R.id.up);
         Button down = (Button) findViewById(R.id.down);
         Button play = (Button) findViewById(R.id.play);
@@ -201,6 +293,23 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        final TextView bpmtext = (TextView)findViewById(R.id.bpmtext);
+        bpmtext.setText("BPM");
+        SeekBar bpm =(SeekBar)findViewById(R.id.bpm);
+        bpm.setMax(300);
+        bpm.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                bpmtext.setText(progress + "BPM");
+                time = 240000 / progress;
+            }
+            public void onStartTrackingTouch(SeekBar seekBar) {
+                // TODO Auto-generated method stub
+            }
+
+            public void onStopTrackingTouch(SeekBar seekBar) {
+            }
+        });
     }
 }
 
@@ -208,9 +317,9 @@ public class MainActivity extends AppCompatActivity {
 //                @Override
 //                public void run() {
 //                    resource = R.raw.test2;
-////                    if (track != null) {
-////                        track.reset();
-////                    }
+//                    if (track != null) {
+//                        track.reset();
+//                    }
 //                    if(!timerOn) {
 //                        startTime = System.currentTimeMillis();
 //                        timerOn = true;
