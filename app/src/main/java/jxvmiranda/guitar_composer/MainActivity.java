@@ -6,8 +6,10 @@ import android.graphics.drawable.Drawable;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
+import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -27,7 +29,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+
 public class MainActivity extends AppCompatActivity {
+    private boolean threadOn = true;
     int resource_up = R.raw.gu;
     int resource_down = R.raw.gd;
     long startTime;
@@ -114,10 +118,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
             Runnable r = new Runnable(){
-
                 @Override
                 public void run() {
                     play();
+
                 }
             };
             Thread t = new Thread(r);
@@ -172,6 +176,7 @@ public class MainActivity extends AppCompatActivity {
                         } //don't really know why it works, it reads the file
                         track.write(rawBytes, 0, (int) totalAudioLen); //write it in the buffer?
                         track.play();
+                        Log.d("EW", "WEF");
                         track.setPlaybackRate(44100);
                         inputStream.close();
                     } catch (FileNotFoundException e) {
@@ -260,20 +265,77 @@ public class MainActivity extends AppCompatActivity {
 
         }
     }
+
+
+
+    private ImageView m1;
+    private ImageView m2;
+    private ImageView m3;
+    private ImageView m4;
+    private MediaPlayer player;
+    private Drawable image;
+    private Drawable outline;
+    private boolean met_is_playing = false;
+    private Button play_metronome;
+    private Handler handler = new Handler();
+    private Runnable run_mt= new Runnable() {
+        private int whichBeat = 1;
+        @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
+        @Override
+        public void run() {
+            Log.d("A", "DA");
+            player.seekTo(0);
+            player.start();
+
+            if (whichBeat == 1) {
+                m4.setBackground(outline);
+                m1.setBackground(image);
+            }
+            else if (whichBeat == 2){
+                m1.setBackground(outline);
+                m2.setBackground(image);
+            }
+            else if (whichBeat == 3){
+                m2.setBackground(outline);
+                m3.setBackground(image);
+            }
+            else if (whichBeat == 4){
+                m3.setBackground(outline);
+                m4.setBackground(image);
+            }
+            if (met_is_playing){
+                whichBeat++;
+                if (whichBeat == 5){
+                    whichBeat = 1;
+                }
+
+                handler.postDelayed(this, (time/4));
+            }
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        player = MediaPlayer.create(MainActivity.this, R.raw.metronome);
+        play_metronome = (Button) findViewById(R.id.metronome);
+        m1 = (ImageView) findViewById(R.id.m1);
+        m2 = (ImageView) findViewById(R.id.m2);
+        m3 = (ImageView) findViewById(R.id.m3);
+        m4 = (ImageView) findViewById(R.id.m4);
+        image = (Drawable)getResources().getDrawable(R.drawable.custom);
+        outline = (Drawable)getResources().getDrawable(R.drawable.outline);
+        play_metronome.setOnClickListener(new View.OnClickListener() {
 
-        Button mt = (Button) findViewById(R.id.metronome);
-        final ImageView m1 = (ImageView) findViewById(R.id.m1);
-        mt.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN)
             @Override
             public void onClick(View view) {
-                Drawable image=(Drawable)getResources().getDrawable(R.drawable.custom);
-                m1.setBackground(image);
+                met_is_playing = true;
+                handler.removeCallbacks(run_mt);
+                handler.postDelayed(run_mt, 1000);
+                Log.d("I", "INSIDE ON CLICK");
             }
         });
         Button up = (Button) findViewById(R.id.up);
