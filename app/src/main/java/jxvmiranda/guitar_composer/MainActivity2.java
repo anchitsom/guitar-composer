@@ -18,26 +18,19 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Arrays;
-
-/**
- * Created by abhinavgoyal on 19/11/2017.
- */
 
 public class MainActivity2 extends AppCompatActivity {
     // an array for storing the selected files
@@ -69,7 +62,7 @@ public class MainActivity2 extends AppCompatActivity {
         final Button playButton = (Button) findViewById(R.id.play);
 
         pool = new SoundPool(1, AudioManager.STREAM_MUSIC, 0);
-        int soundID[] = new int[14];
+        int soundID[] = new int[16];
 
         soundID[0] = pool.load(MainActivity2.this, R.raw.cup, 1);
         soundID[1] = pool.load(MainActivity2.this, R.raw.cdown, 1);
@@ -89,16 +82,19 @@ public class MainActivity2 extends AppCompatActivity {
         soundID[10] = pool.load(MainActivity2.this, R.raw.aminorup, 1);
         soundID[11] = pool.load(MainActivity2.this, R.raw.aminordown, 1);
 
-        soundID[12] = pool.load(MainActivity2.this, R.raw.chunkdown, 1);
-        soundID[13] = pool.load(MainActivity2.this, R.raw.chunkdownup, 1);
+        soundID[12] = pool.load(MainActivity2.this, R.raw.gu, 1);
+        soundID[13] = pool.load(MainActivity2.this, R.raw.gd, 1);
+
+        soundID[14] = pool.load(MainActivity2.this, R.raw.chunkdown, 1);
+        soundID[15] = pool.load(MainActivity2.this, R.raw.chunkdownup, 1);
         try {
-//            String filePath = "/storage/emulated/0/music-maker";
+            //String filePath = "/storage/emulated/0/music-maker";
             if (Build.VERSION.SDK_INT >= 23) {
                 if (checkSelfPermission(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
                         == PackageManager.PERMISSION_GRANTED) {
-                    Log.v("j","Permission is granted");
+                    Log.v("TAG","Permission is granted");
                 } else {
-                    Log.v("hu","Permission is revoked");
+                    Log.v("TAG","Permission is revoked");
                     ActivityCompat.requestPermissions(MainActivity2.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
                 }
             }
@@ -229,12 +225,16 @@ public class MainActivity2 extends AppCompatActivity {
                 }
                 String text = getdata(selected_files.get(0));
                 String text_array[] = text.split(" ");
+
+
                 for (int i = 0; i < text_array.length; i++){
                     int temp = Integer.parseInt(text_array[i]);
                     if (i % 2 == 0){
+                        //getting the interval
                         times.add(temp);
                     }
                     else{
+                        //getting the sound
                         soundIds.add(temp);
                     }
                 }
@@ -243,18 +243,18 @@ public class MainActivity2 extends AppCompatActivity {
                 int stream = 0;
                 for (int i = 0; i < soundIds.size(); i++){
                     long futureTime = System.currentTimeMillis() + times.get(i);
+                    //wait for futureTime ms
                     while (System.currentTimeMillis() < futureTime) {
                         synchronized (this) {
                             try {
                                 wait(futureTime - System.currentTimeMillis());
                             } catch (Exception e) {
-
                             }
                         }
                     }
-                    Log.d("SF", "Check " + soundIds.get(i));
-                    pool.stop(stream);
-                    stream = pool.play(soundIds.get(i), 1.0f, 1.0f, 1, 0, 1);
+//                    pool.stop(stream);
+                    //play the soundId
+                    pool.play(soundIds.get(i), 1.0f, 1.0f, 1, 0, 1);
                 }
             }
         });
